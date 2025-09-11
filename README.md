@@ -9,6 +9,9 @@
 - Index TTS 2 - Emotion Vector（基于情绪向量复刻）
 - Index TTS 2 - Emotion Text（基于情绪文本复刻）
 
+<img width="3090" height="1389" alt="image" src="https://github.com/user-attachments/assets/b12dae62-0ae3-49a7-99a9-f153218328fa" />
+
+
 TTS2 模型下载与放置位置（全部放到 `./ComfyUI/models/IndexTTS-2/`）：
 
 1) semantic codec（MaskGCT 语义编码器）
@@ -428,4 +431,5 @@ ComfyUI/models/IndexTTS-2/
 ## 许可证
 
 请参考原始IndexTTS项目许可证。
+
 
