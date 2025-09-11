@@ -36,6 +36,10 @@ TTS2 模型下载与放置位置（全部放到 `./ComfyUI/models/IndexTTS-2/`�
    - `bpe.model`（`cfg.dataset.bpe_model`）
    - `wav2vec2bert_stats.pt`（`cfg.w2v_stat`）
    - `qwen0.6bemo4-merge/`（若 `cfg.qwen_emo_path` 指向该目录）
+  
+6) 基础模型
+   - 页面：[TTS2](https://huggingface.co/IndexTeam/IndexTTS-2/tree/main)
+   - 放置：`.\ComfyUI\models\IndexTTS-2` 
 
 示例目录结构（部分）：
 
@@ -424,3 +428,4 @@ ComfyUI/models/IndexTTS-2/
 ## 许可证
 
 请参考原始IndexTTS项目许可证。
+
