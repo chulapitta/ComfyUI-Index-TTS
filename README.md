@@ -1,4 +1,103 @@
-# 免责声明
+## 最新更新（重要）
+
+本项目已新增对 IndexTTS-2（简称 TTS2）的支持，并将功能拆分为四个核心节点，方便在 ComfyUI 中按需组合：
+基础工作流已更新，详见./workflow/TTS2.json.
+会有一些BUG，欢迎反馈。功能基本复刻了原版IndexTTS，关于功能建议欢迎交流。
+
+- Index TTS 2 - Base（基础合成）
+- Index TTS 2 - Emotion Audio（基于参考音频情绪复刻）
+- Index TTS 2 - Emotion Vector（基于情绪向量复刻）
+- Index TTS 2 - Emotion Text（基于情绪文本复刻）
+
+TTS2 模型下载与放置位置（全部放到 `./ComfyUI/models/IndexTTS-2/`）：
+
+1) semantic codec（MaskGCT 语义编码器）
+   - 页面：[https://huggingface.co/amphion/MaskGCT/tree/main/semantic_codec](https://huggingface.co/amphion/MaskGCT/tree/main/semantic_codec)
+   - 直链：[https://huggingface.co/amphion/MaskGCT/resolve/main/semantic_codec/model.safetensors?download=true](https://huggingface.co/amphion/MaskGCT/resolve/main/semantic_codec/model.safetensors?download=true)
+   - 放置：`semantic_codec/model.safetensors`
+
+2) CampPlus 说话人嵌入
+   - 页面：[https://huggingface.co/funasr/campplus](https://huggingface.co/funasr/campplus)
+   - 直链：[https://huggingface.co/funasr/campplus/resolve/main/campplus_cn_common.bin?download=true](https://huggingface.co/funasr/campplus/resolve/main/campplus_cn_common.bin?download=true)
+   - 放置：`campplus_cn_common.bin`
+
+3) Wav2Vec2Bert 特征（facebook/w2v-bert-2.0）
+   - 页面：[https://huggingface.co/facebook/w2v-bert-2.0](https://huggingface.co/facebook/w2v-bert-2.0)
+   - 放置：`w2v-bert-2.0/` 整个文件夹（如 `config.json`、`model.safetensors`、`preprocessor_config.json` 等）
+   - 若未提前放置，将自动下载到本地缓存：`./ComfyUI/models/IndexTTS-2/hf_cache/`
+
+4) BigVGAN 声码器
+   - 依据 `config.yaml` 中 `vocoder.name`（例如 `nvidia/bigvgan_v2_22khz_80band_256x`）
+   - 建议提前将对应模型完整缓存到 `bigvgan/` 下
+
+5) 其他本地直读文件（需与 `config.yaml` 一致）：
+   - `gpt.pth`（`cfg.gpt_checkpoint`）
+   - `s2mel.pth`（`cfg.s2mel_checkpoint`）
+   - `bpe.model`（`cfg.dataset.bpe_model`）
+   - `wav2vec2bert_stats.pt`（`cfg.w2v_stat`）
+   - `qwen0.6bemo4-merge/`（若 `cfg.qwen_emo_path` 指向该目录）
+
+示例目录结构（部分）：
+
+```text
+ComfyUI/models/IndexTTS-2/
+│  .gitattributes
+│  bpe.model
+│  campplus_cn_common.bin
+│  config.yaml
+│  feat1.pt
+│  feat2.pt
+│  gpt.pth
+│  README.md
+│  s2mel.pth
+│  wav2vec2bert_stats.pt
+│
+├─bigvgan
+│  └─bigvgan_v2_22khz_80band_256x
+│          .gitattributes
+│          .gitignore
+│          activations.py
+│          bigvgan.py
+│          bigvgan_discriminator_optimizer.pt
+│          bigvgan_discriminator_optimizer_3msteps.pt
+│          bigvgan_generator.pt
+│          bigvgan_generator_3msteps.pt
+│          config.json
+│          env.py
+│          LICENSE
+│          meldataset.py
+│          README.md
+│          utils.py
+│
+├─hf_cache
+├─qwen0.6bemo4-merge
+│      added_tokens.json
+│      chat_template.jinja
+│      config.json
+│      generation_config.json
+│      merges.txt
+│      model.safetensors
+│      Modelfile
+│      special_tokens_map.json
+│      tokenizer.json
+│      tokenizer_config.json
+│      vocab.json
+│
+├─semantic_codec
+│      model.safetensors
+│
+└─w2v-bert-2.0
+        .gitattributes
+        config.json
+        conformer_shaw.pt
+        model.safetensors
+        preprocessor_config.json
+        README.md
+```
+
+> 提示：若你只使用旧版 IndexTTS/IndexTTS-1.5，可忽略上述 TTS2 模型放置步骤。
+
+## 免责声明
 
 本项目基于B站开源项目进行二次开发，由本人对项目进行了ComfyUI的实现，并进行了部分功能优化与调整与进阶功能的开发。然而，需要强调的是，本项目严禁用于任何非法目的以及与侵犯版权相关的任何行为！本项目仅用于开源社区内的交流与学习，以促进技术共享与创新，旨在为开发者提供有益的参考和学习资源。
 
