@@ -14,35 +14,42 @@
 
 TTS2 模型下载与放置位置（全部放到 `./ComfyUI/models/IndexTTS-2/`）：
 
-1) semantic codec（MaskGCT 语义编码器）
+1) 基础模型
+   - 页面：[TTS2](https://huggingface.co/IndexTeam/IndexTTS-2/tree/main)
+   - 放置：`.\ComfyUI\models\IndexTTS-2`
+
+2) qwen 模型（情绪分类）
+   - 页面：[IndexTTS-2/qwen0.6bemo4-merge](https://huggingface.co/IndexTeam/IndexTTS-2/tree/main/qwen0.6bemo4-merge)
+   - 放置：`.\ComfyUI\models\IndexTTS-2\qwen0.6bemo4-merge\`
+
+3) semantic codec（MaskGCT 语义编码器）
    - 页面：[https://huggingface.co/amphion/MaskGCT/tree/main/semantic_codec](https://huggingface.co/amphion/MaskGCT/tree/main/semantic_codec)
-   - 直链：[https://huggingface.co/amphion/MaskGCT/resolve/main/semantic_codec/model.safetensors?download=true](https://huggingface.co/amphion/MaskGCT/resolve/main/semantic_codec/model.safetensors?download=true)
-   - 放置：`semantic_codec/model.safetensors`
+   - 直链：[https://huggingface.co/amphion/MaskGCT/resolve/main/semantic_codec/model.safetensors](https://huggingface.co/amphion/MaskGCT/resolve/main/semantic_codec/model.safetensors)
+   - 放置：`.\ComfyUI\models\IndexTTS-2\semantic_codec\model.safetensors`
 
-2) CampPlus 说话人嵌入
+4) CampPlus 说话人嵌入
    - 页面：[https://huggingface.co/funasr/campplus](https://huggingface.co/funasr/campplus)
-   - 直链：[https://huggingface.co/funasr/campplus/resolve/main/campplus_cn_common.bin?download=true](https://huggingface.co/funasr/campplus/resolve/main/campplus_cn_common.bin?download=true)
-   - 放置：`campplus_cn_common.bin`
+   - 直链：[https://huggingface.co/funasr/campplus/resolve/main/campplus_cn_common.bin](https://huggingface.co/funasr/campplus/resolve/main/campplus_cn_common.bin)
+   - 放置：`.\ComfyUI\models\IndexTTS-2\campplus_cn_common.bin`
 
-3) Wav2Vec2Bert 特征（facebook/w2v-bert-2.0）
-   - 页面：[https://huggingface.co/facebook/w2v-bert-2.0](https://huggingface.co/facebook/w2v-bert-2.0)
-   - 放置：`w2v-bert-2.0/` 整个文件夹（如 `config.json`、`model.safetensors`、`preprocessor_config.json` 等）
-   - 若未提前放置，将自动下载到本地缓存：`./ComfyUI/models/IndexTTS-2/hf_cache/`
+5) Wav2Vec2Bert 特征提取器（facebook/w2v-bert-2.0）
+   - 页面：[https://huggingface.co/facebook/w2v-bert-2.0/tree/main](https://huggingface.co/facebook/w2v-bert-2.0/tree/main)
+   - 放置（离线优先）：`.\ComfyUI\models\IndexTTS-2\w2v-bert-2.0\`（整个仓库文件夹，包含 `config.json`、`model.safetensors`、`preprocessor_config.json` 等）
+   - 若未放置本地文件夹，将自动下载到 HF 缓存：`.\ComfyUI\models\IndexTTS-2\hf_cache\`
 
-4) BigVGAN 声码器
-   - 依据 `config.yaml` 中 `vocoder.name`（例如 `nvidia/bigvgan_v2_22khz_80band_256x`）
-   - 建议提前将对应模型完整缓存到 `bigvgan/` 下
+6) BigVGAN 声码器
+   - 名称读取自 `config.yaml` 的 `vocoder.name`（示例：`nvidia/bigvgan_v2_22khz_80band_256x`）
+   - 建议：提前将对应模型完整缓存到 `.\ComfyUI\models\IndexTTS-2\bigvgan\` 内
 
-5) 其他本地直读文件（需与 `config.yaml` 一致）：
+7) 其他本地直读文件（需与 `config.yaml` 一致）：
    - `gpt.pth`（`cfg.gpt_checkpoint`）
    - `s2mel.pth`（`cfg.s2mel_checkpoint`）
    - `bpe.model`（`cfg.dataset.bpe_model`）
    - `wav2vec2bert_stats.pt`（`cfg.w2v_stat`）
-   - `qwen0.6bemo4-merge/`（若 `cfg.qwen_emo_path` 指向该目录）
-  
-6) 基础模型
-   - 页面：[TTS2](https://huggingface.co/IndexTeam/IndexTTS-2/tree/main)
-   - 放置：`.\ComfyUI\models\IndexTTS-2` 
+   - 语义编码配置（如 `repcodec.json`，若需要，`cfg.semantic_codec`）
+   - `emo_matrix`（例如 `feat2.pt`）
+   - `spk_matrix`（例如 `feat1.pt`）
+   - `qwen0.6bemo4-merge\`（`cfg.qwen_emo_path` 指定目录）
 
 示例目录结构（部分）：
 
@@ -103,6 +110,27 @@ ComfyUI/models/IndexTTS-2/
 ```
 
 > 提示：若你只使用旧版 IndexTTS/IndexTTS-1.5，可忽略上述 TTS2 模型放置步骤。
+
+### 一键下载脚本（推荐）
+
+- 脚本位置：`ComfyUI/custom_nodes/ComfyUI-Index-TTS/TTS2_download.py`
+- 作用：自动下载并放置上述所有 TTS2 所需模型文件，支持断点续传、国内镜像（HF_ENDPOINT=hf-mirror.com）、本地缓存（HF_HOME=./ComfyUI/models/IndexTTS-2/hf_cache）。
+
+使用方法（Windows/PowerShell）：
+
+```powershell
+python .\ComfyUI\custom_nodes\ComfyUI-Index-TTS\TTS2_download.py
+```
+
+- 运行后根据提示选择 2 使用国内镜像（默认）或 1 使用官方源。
+- 依赖：`huggingface_hub`（必须）；可选加速：`hf_transfer`、`hf_xet`。
+
+```powershell
+python -m pip install -U huggingface_hub
+# 可选加速：
+python -m pip install -U hf_transfer
+python -m pip install -U "huggingface_hub[hf_xet]"
+```
 
 ## 免责声明
 

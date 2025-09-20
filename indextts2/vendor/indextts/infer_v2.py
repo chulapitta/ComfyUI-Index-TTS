@@ -79,7 +79,9 @@ class IndexTTS2:
         self.dtype = torch.float16 if self.is_fp16 else None
         self.stop_mel_token = self.cfg.gpt.stop_mel_token
 
-        self.qwen_emo = QwenEmotion(os.path.join(self.model_dir, self.cfg.qwen_emo_path))
+        # Normalize qwen emo subpath (strip whitespace to avoid trailing space issues)
+        qwen_subdir = str(self.cfg.qwen_emo_path).strip()
+        self.qwen_emo = QwenEmotion(os.path.join(self.model_dir, qwen_subdir))
 
         self.gpt = UnifiedVoice(**self.cfg.gpt)
         self.gpt_path = os.path.join(self.model_dir, self.cfg.gpt_checkpoint)
