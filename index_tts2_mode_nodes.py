@@ -59,6 +59,8 @@ class _IndexTTS2BaseMixin:
             "max_mel_tokens": ("INT", {"default": 1815, "min": 50, "max": 1815, "step": 5}),
             "max_tokens_per_sentence": ("INT", {"default": 120, "min": 0, "max": 600, "step": 5}),
             "seed": ("INT", {"default": 0, "min": 0, "max": 2**32 - 1}),
+            # External cache control dict from utility node
+            "cache_control": ("DICT", {"default": None}),
         }
 
     def _do_generate(self, engine: IndexTTS2Engine, **kwargs):
@@ -85,9 +87,10 @@ class IndexTTS2BaseNode(_IndexTTS2BaseMixin):
     def generate(self, text, reference_audio, mode,
                  do_sample_mode="off", temperature=0.8, top_p=0.9, top_k=30, num_beams=3,
                  repetition_penalty=10.0, length_penalty=0.0, max_mel_tokens=1815,
-                 max_tokens_per_sentence=120, seed=0, return_subtitles=True):
+                 max_tokens_per_sentence=120, seed=0, return_subtitles=True,
+                 cache_control=None):
         ref = self._process_audio_input(reference_audio)
-        return self._do_generate(
+        out = self._do_generate(
             self.engine,
             text=text, reference_audio=ref, mode=mode,
             do_sample=(do_sample_mode == "on"), temperature=temperature, top_p=top_p, top_k=top_k, num_beams=num_beams,
@@ -96,6 +99,14 @@ class IndexTTS2BaseNode(_IndexTTS2BaseMixin):
             emo_text=None, emo_ref_audio=None, emo_vector=None, emo_weight=0.8,
             seed=seed, return_subtitles=True,
         )
+        # Handle cache control: unload tts if keep_cached is False
+        try:
+            keep = bool(cache_control.get("keep_cached")) if isinstance(cache_control, dict) else False
+            if not keep:
+                self.loader.unload_tts()
+        except Exception:
+            pass
+        return out
 
 
 class IndexTTS2EmotionAudioNode(_IndexTTS2BaseMixin):
@@ -123,10 +134,11 @@ class IndexTTS2EmotionAudioNode(_IndexTTS2BaseMixin):
                  
                  do_sample_mode="off", temperature=0.8, top_p=0.9, top_k=30, num_beams=3,
                  repetition_penalty=10.0, length_penalty=0.0, max_mel_tokens=1815,
-                 max_tokens_per_sentence=120, seed=0, return_subtitles=True):
+                 max_tokens_per_sentence=120, seed=0, return_subtitles=True,
+                 cache_control=None):
         ref = self._process_audio_input(reference_audio)
         emo_ref = self._process_audio_input(emo_ref_audio)
-        return self._do_generate(
+        out = self._do_generate(
             self.engine,
             text=text, reference_audio=ref, mode=mode,
             do_sample=(do_sample_mode == "on"), temperature=temperature, top_p=top_p, top_k=top_k, num_beams=num_beams,
@@ -135,6 +147,13 @@ class IndexTTS2EmotionAudioNode(_IndexTTS2BaseMixin):
             emo_text=None, emo_ref_audio=emo_ref, emo_vector=None, emo_weight=float(emotion_weight),
             seed=seed, return_subtitles=True,
         )
+        try:
+            keep = bool(cache_control.get("keep_cached")) if isinstance(cache_control, dict) else False
+            if not keep:
+                self.loader.unload_tts()
+        except Exception:
+            pass
+        return out
 
 
 class IndexTTS2EmotionVectorNode(_IndexTTS2BaseMixin):
@@ -169,12 +188,13 @@ class IndexTTS2EmotionVectorNode(_IndexTTS2BaseMixin):
                  
                  do_sample_mode="off", temperature=0.8, top_p=0.9, top_k=30, num_beams=3,
                  repetition_penalty=10.0, length_penalty=0.0, max_mel_tokens=1815,
-                 max_tokens_per_sentence=120, seed=0, return_subtitles=True):
+                 max_tokens_per_sentence=120, seed=0, return_subtitles=True,
+                 cache_control=None):
         ref = self._process_audio_input(reference_audio)
         vec = [Happy, Angry, Sad, Fear, Hate, Love, Surprise, Neutral]
         s = float(sum(max(0.0, float(x)) for x in vec))
         emo_vec = ([float(max(0.0, float(x)))/s for x in vec] if s > 0 else [0.0]*7 + [1.0])
-        return self._do_generate(
+        out = self._do_generate(
             self.engine,
             text=text, reference_audio=ref, mode=mode,
             do_sample=(do_sample_mode == "on"), temperature=temperature, top_p=top_p, top_k=top_k, num_beams=num_beams,
@@ -183,6 +203,13 @@ class IndexTTS2EmotionVectorNode(_IndexTTS2BaseMixin):
             emo_text=None, emo_ref_audio=None, emo_vector=emo_vec, emo_weight=0.8,
             seed=seed, return_subtitles=True,
         )
+        try:
+            keep = bool(cache_control.get("keep_cached")) if isinstance(cache_control, dict) else False
+            if not keep:
+                self.loader.unload_tts()
+        except Exception:
+            pass
+        return out
 
 
 class IndexTTS2EmotionTextNode(_IndexTTS2BaseMixin):
@@ -207,11 +234,12 @@ class IndexTTS2EmotionTextNode(_IndexTTS2BaseMixin):
                  
                  do_sample_mode="off", temperature=0.8, top_p=0.9, top_k=30, num_beams=3,
                  repetition_penalty=10.0, length_penalty=0.0, max_mel_tokens=1815,
-                 max_tokens_per_sentence=120, seed=0, return_subtitles=True):
+                 max_tokens_per_sentence=120, seed=0, return_subtitles=True,
+                 cache_control=None):
         ref = self._process_audio_input(reference_audio)
         emo_text = emotion_description.strip() if isinstance(emotion_description, str) else ""
         emo_text = emo_text if emo_text else None
-        return self._do_generate(
+        out = self._do_generate(
             self.engine,
             text=text, reference_audio=ref, mode=mode,
             do_sample=(do_sample_mode == "on"), temperature=temperature, top_p=top_p, top_k=top_k, num_beams=num_beams,
@@ -223,3 +251,10 @@ class IndexTTS2EmotionTextNode(_IndexTTS2BaseMixin):
             verbose=True,
             seed=seed, return_subtitles=True,
         )
+        try:
+            keep = bool(cache_control.get("keep_cached")) if isinstance(cache_control, dict) else False
+            if not keep:
+                self.loader.unload_tts()
+        except Exception:
+            pass
+        return out

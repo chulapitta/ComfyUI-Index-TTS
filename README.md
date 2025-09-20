@@ -132,6 +132,20 @@ python -m pip install -U hf_transfer
 python -m pip install -U "huggingface_hub[hf_xet]"
 ```
 
+### 显存/缓存控制（新功能）
+
+- 新增节点：`Index TTS 2 - Cache Control`
+  - 输出：`cache_control`（类型：DICT），包含 `{"keep_cached": true/false}`。
+  - 用法：将该输出连到以下任一/多个节点的 `cache_control` 输入上：
+    - `Index TTS 2 - Base`
+    - `Index TTS 2 - Emotion Audio`
+    - `Index TTS 2 - Emotion Vector`
+    - `Index TTS 2 - Emotion Text`
+
+- 行为说明：
+  - 关闭（默认）：本次推理结束后自动卸载 TTS2 模型并清理 CUDA 缓存，降低显存驻留峰值，适合 12GB 显卡日常使用。
+  - 开启：保留已加载的权重（尽量驻留，视环境/模式），连续多次生成更快，但显存占用更高。调参批量测试时可临时打开，用完关闭。
+
 ## 免责声明
 
 本项目基于B站开源项目进行二次开发，由本人对项目进行了ComfyUI的实现，并进行了部分功能优化与调整与进阶功能的开发。然而，需要强调的是，本项目严禁用于任何非法目的以及与侵犯版权相关的任何行为！本项目仅用于开源社区内的交流与学习，以促进技术共享与创新，旨在为开发者提供有益的参考和学习资源。

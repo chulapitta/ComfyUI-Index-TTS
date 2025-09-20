@@ -25,6 +25,7 @@ from .index_tts2_mode_nodes import (
     IndexTTS2EmotionVectorNode,
     IndexTTS2EmotionTextNode,
 )
+from .index_tts2_cache_nodes import IndexTTS2CacheControlNode
 
 # 注册ComfyUI节点
 NODE_CLASS_MAPPINGS = {
@@ -38,6 +39,7 @@ NODE_CLASS_MAPPINGS = {
     "IndexTTS2EmotionAudioNode": IndexTTS2EmotionAudioNode,
     "IndexTTS2EmotionVectorNode": IndexTTS2EmotionVectorNode,
     "IndexTTS2EmotionTextNode": IndexTTS2EmotionTextNode,
+    "IndexTTS2CacheControlNode": IndexTTS2CacheControlNode,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -51,6 +53,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "IndexTTS2EmotionAudioNode": "Index TTS 2 - Emotion Audio",
     "IndexTTS2EmotionVectorNode": "Index TTS 2 - Emotion Vector",
     "IndexTTS2EmotionTextNode": "Index TTS 2 - Emotion Text",
+    "IndexTTS2CacheControlNode": "Index TTS 2 - Cache Control",
 }
 
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']

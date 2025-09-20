@@ -1,5 +1,6 @@
 import os
 import sys
+import gc
 import torch
 from typing import Optional, Dict, Any
 
@@ -138,3 +139,26 @@ class IndexTTS2Loader:
         )
         self._cache["tts"] = tts
         return tts
+
+    def unload_tts(self) -> None:
+        """
+        Best-effort unload of cached TTS instance and free GPU cache to reduce VRAM.
+        Safe to call even if not loaded.
+        """
+        try:
+            tts = self._cache.pop("tts", None)
+            # Break potential cyc refs early
+            del tts
+        except Exception:
+            pass
+        # Collect Python garbage and free CUDA cache
+        try:
+            gc.collect()
+        except Exception:
+            pass
+        try:
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
