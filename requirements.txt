@@ -8,6 +8,7 @@ pynini==2.1.6; platform_system!="Windows"
 WeTextProcessing>=1.0.3; platform_system!="Windows"
 omegaconf>=2.3.0
 transformers>=4.50.0
+# transformers==4.54.1 这个是我个人推荐的可用版本
 huggingface_hub>=0.23.0
 safetensors>=0.4.2
 torchaudio>=2.0.0
