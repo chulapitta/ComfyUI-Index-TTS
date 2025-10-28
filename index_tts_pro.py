@@ -64,6 +64,7 @@ class IndexTTSProNode:
                 "do_sample": ("BOOLEAN", {"default": False}),
                 "mode": (["Auto", "Duration", "Tokens"], {"default": "Auto"}),
                 "emotion_weight": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.05, "description": "情感强度控制 / Emotion intensity control (现已修复，支持情感文本模式 / Now fixed, supports emotion text mode)"}),
+                "pause_between_lines": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 5.0, "step": 0.01, "description": "行间停顿时长(秒) / Pause duration between lines (seconds)"}),
             }
         }
     
@@ -360,7 +361,8 @@ class IndexTTSProNode:
                                    temperature=0.8, top_p=0.9, top_k=30, 
                                    repetition_penalty=10.0, length_penalty=0.0, 
                                    num_beams=3, max_mel_tokens=1500,
-                                   do_sample=False, mode="Auto", emotion_weight=0.8):
+                                   do_sample=False, mode="Auto", emotion_weight=0.8,
+                                   pause_between_lines=0.2):
         """
         生成多角色语音的主函数 / Main function for generating multi-character speech
         
@@ -382,6 +384,7 @@ class IndexTTSProNode:
             do_sample: 是否使用采样 / Whether to use sampling (V2 only)
             mode: 生成模式 / Generation mode (V2 only)
             emotion_weight: 情感强度控制 / Emotion intensity control (0.0-1.6, V2 only)
+            pause_between_lines: 行间停顿时长(秒) / Pause duration between lines (seconds)
         """
         try:
             print(f"[IndexTTS Pro] Starting multi-voice generation with structured_text: {structured_text[:100]}...")
@@ -413,7 +416,7 @@ class IndexTTSProNode:
             # 判断是否使用V2模型 / Check if using V2 model
             is_v2 = (model_version == "IndexTTS-2")
             
-            for role, text, emotion in parsed_text:
+            for segment_idx, (role, text, emotion) in enumerate(parsed_text):
                 emotion_text = f" (emotion: {emotion})" if emotion else ""
                 print(f"\n[IndexTTS Pro] 🎭 Processing: {role}{emotion_text}")
                 print(f"[IndexTTS Pro] 📝 Text: {text[:100]}{'...' if len(text) > 100 else ''}")
@@ -513,6 +516,14 @@ class IndexTTSProNode:
                         
                         # 添加到段落列表 / Add to segment list
                         audio_segments.append((audio_data, sample_rate))
+                        
+                        # 添加行间停顿 (除了最后一段) / Add pause between lines (except for last segment)
+                        if pause_between_lines > 0 and segment_idx < len(parsed_text) - 1:
+                            silence_samples = int(pause_between_lines * sample_rate)
+                            silence = np.zeros(silence_samples, dtype=np.float32)
+                            audio_segments.append((silence, sample_rate))
+                            current_time += pause_between_lines
+                            print(f"[IndexTTS Pro] Added {pause_between_lines}s pause after {role}")
                     else:
                         print(f"[IndexTTS Pro] Warning: Invalid audio data for {role}")
                     
