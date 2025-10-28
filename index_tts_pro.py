@@ -28,9 +28,18 @@ class IndexTTSProNode:
     支持格式 / Supported format:
     <Narrator>旁白文本</Narrator>
     <Character1 emo="开心而兴奋">角色对话</Character1>
-    <Character2 emo="悲伤而难过">悲伤的对话</Character2>
+    <Character2 emo="悲伤而难过" ew="0.8">悲伤的对话（自定义情感强度）</Character2>
+    <Character3 ew="0.3" pause="2.0">对话（使用自动情感分析，低强度，长停顿）</Character3>
+    <Character4 pause="0.1">快速对话（短停顿）</Character4>
+    <Character5 pause="0">无停顿对话</Character5>
     
     情感控制仅在IndexTTS-2模型中可用 / Emotion control only available with IndexTTS-2 model
+    
+    属性说明 / Attribute descriptions:
+    - emo="情感文本" / emo="emotion text": 指定具体情感描述 / Specify emotion description
+    - emo="" : 明确禁用情感 / Explicitly disable emotion
+    - ew="0.0-1.0" : 行级情感强度控制，覆盖全局设置 / Line-level emotion weight control, overrides global setting
+    - pause="0.0-10.0" : 行级停顿时长控制（秒），覆盖全局设置 / Line-level pause duration control (seconds), overrides global setting
     
     情感模式 / Emotion modes:
     1. 显式情感 / Explicit emotion: 使用emo属性指定 / Use emo attribute
@@ -213,11 +222,11 @@ class IndexTTSProNode:
         """解析结构化文本 / Parse structured text
         
         Args:
-            structured_text: 结构化文本，支持情感属性 / Structured text, supports emotion attributes
-                           e.g. "<Narrator>This is narrative text<Character1 emo="excited">Hello!</Character1>"
+            structured_text: 结构化文本，支持情感、情感强度和停顿属性 / Structured text, supports emotion, emotion weight and pause attributes
+                           e.g. "<Narrator>This is narrative text<Character1 emo="excited" ew="0.8" pause="1.0">Hello!</Character1>"
             
         Returns:
-            list: 解析后的文本段落列表，每个元素为 (role, text, emotion) / List of parsed text segments, each element is (role, text, emotion)
+            list: 解析后的文本段落列表，每个元素为 (role, text, emotion, emotion_weight, pause_duration) / List of parsed text segments, each element is (role, text, emotion, emotion_weight, pause_duration)
         """
         segments = []
         # 简单匹配模式，捕获整个标签和内容 / Simple matching pattern to capture entire tag and content
@@ -228,19 +237,45 @@ class IndexTTSProNode:
         
         # 如果找不到任何匹配，将整个文本作为旁白处理 / If no matches found, treat entire text as narrator
         if not matches:
-            segments.append(("Narrator", structured_text.strip(), None))
+            segments.append(("Narrator", structured_text.strip(), None, None, None))
         else:
             for role, attributes, text in matches:
-                # 分析属性部分，查找emo="..." / Analyze attributes part, look for emo="..."
+                # 分析属性部分，查找emo="...", ew="...", pause="..." / Analyze attributes part, look for emo="...", ew="...", pause="..."
                 emotion = None
+                emotion_weight = None
+                pause_duration = None
+                
                 if attributes.strip():
+                    # 查找emotion属性 / Look for emotion attribute
                     emo_match = re.search(r'emo="([^"]*)"', attributes)
                     if emo_match:
                         emotion = emo_match.group(1).strip()  # 可能是空字符串或有内容 / Could be empty string or have content
+                    
+                    # 查找emotion weight属性 / Look for emotion weight attribute
+                    ew_match = re.search(r'ew="([^"]*)"', attributes)
+                    if ew_match:
+                        try:
+                            emotion_weight = float(ew_match.group(1).strip())
+                            # 限制范围在0.0-1.0之间 / Limit range between 0.0-1.0
+                            emotion_weight = max(0.0, min(1.0, emotion_weight))
+                        except ValueError:
+                            print(f"[IndexTTS Pro] Warning: Invalid emotion weight value '{ew_match.group(1)}', ignoring")
+                            emotion_weight = None
+                    
+                    # 查找pause属性 / Look for pause attribute
+                    pause_match = re.search(r'pause="([^"]*)"', attributes)
+                    if pause_match:
+                        try:
+                            pause_duration = float(pause_match.group(1).strip())
+                            # 限制范围在0.0-10.0之间 / Limit range between 0.0-10.0 seconds
+                            pause_duration = max(0.0, min(10.0, pause_duration))
+                        except ValueError:
+                            print(f"[IndexTTS Pro] Warning: Invalid pause duration value '{pause_match.group(1)}', ignoring")
+                            pause_duration = None
                 
                 text = text.strip()
                 if text:  # 只添加非空文本 / Only add non-empty text
-                    segments.append((role, text, emotion))
+                    segments.append((role, text, emotion, emotion_weight, pause_duration))
                     
         return segments
     
@@ -428,9 +463,11 @@ class IndexTTSProNode:
             # 判断是否使用V2模型 / Check if using V2 model
             is_v2 = (model_version == "IndexTTS-2")
             
-            for segment_idx, (role, text, emotion) in enumerate(parsed_text):
+            for segment_idx, (role, text, emotion, line_emotion_weight, line_pause_duration) in enumerate(parsed_text):
                 emotion_text = f" (emotion: {emotion})" if emotion else ""
-                print(f"\n[IndexTTS Pro] 🎭 Processing: {role}{emotion_text}")
+                ew_text = f" (ew: {line_emotion_weight})" if line_emotion_weight is not None else ""
+                pause_text = f" (pause: {line_pause_duration}s)" if line_pause_duration is not None else ""
+                print(f"\n[IndexTTS Pro] 🎭 Processing: {role}{emotion_text}{ew_text}{pause_text}")
                 print(f"[IndexTTS Pro] 📝 Text: {text[:100]}{'...' if len(text) > 100 else ''}")
                 
                 # 选择参考音频 / Select reference audio
@@ -452,6 +489,9 @@ class IndexTTSProNode:
                         use_emotion_analysis = False
                         emotion_text_input = None
                         
+                        # 确定使用的情感强度：优先使用行级设置，否则使用全局设置 / Determine emotion weight: prefer line-level setting, otherwise use global setting
+                        current_emotion_weight = line_emotion_weight if line_emotion_weight is not None else emotion_weight
+                        
                         if emotion is not None:
                             # 检查是否显式抑制情感 / Check if emotion is explicitly suppressed
                             if emotion == "":
@@ -463,12 +503,14 @@ class IndexTTSProNode:
                                 # 显式指定了情感文本 / Explicit emotion text specified
                                 emotion_text_input = emotion
                                 use_emotion_analysis = True
-                                print(f"[IndexTTS Pro] Explicit Emotion Text: '{emotion}' (weight: {emotion_weight})")
+                                weight_source = "line-level" if line_emotion_weight is not None else "global"
+                                print(f"[IndexTTS Pro] Explicit Emotion Text: '{emotion}' (weight: {current_emotion_weight} from {weight_source})")
                         elif auto_emotion:
                             # 自动情感分析模式：使用对话文本本身 / Automatic emotion mode: use dialogue text itself
                             emotion_text_input = None  # 让引擎自动使用text参数 / Let engine auto-use text parameter
                             use_emotion_analysis = True
-                            print(f"[IndexTTS Pro] Automatic Emotion Analysis enabled for: '{text[:50]}...'" if len(text) > 50 else f"[IndexTTS Pro] Automatic Emotion Analysis enabled for: '{text}'")
+                            weight_source = "line-level" if line_emotion_weight is not None else "global"
+                            print(f"[IndexTTS Pro] Automatic Emotion Analysis enabled (weight: {current_emotion_weight} from {weight_source}) for: '{text[:50]}...'" if len(text) > 50 else f"[IndexTTS Pro] Automatic Emotion Analysis enabled (weight: {current_emotion_weight} from {weight_source}) for: '{text}'")
                         else:
                             print("[IndexTTS Pro] No emotion processing")
                         
@@ -488,7 +530,7 @@ class IndexTTSProNode:
                             emo_text=emotion_text_input,  # None会让引擎自动使用text / None lets engine auto-use text
                             emo_ref_audio=None,
                             emo_vector=None,
-                            emo_weight=emotion_weight,  # 使用用户设定的情感强度 / Use user-defined emotion intensity
+                            emo_weight=current_emotion_weight,  # 使用当前行的情感强度（行级优先） / Use current line's emotion intensity (line-level priority)
                             use_qwen=use_emotion_analysis,  # 根据情况启用Qwen分析 / Enable Qwen analysis based on conditions
                             verbose=True,  # 启用详细日志显示情感向量 / Enable verbose logging to show emotion vectors
                             seed=seed,
@@ -496,7 +538,8 @@ class IndexTTSProNode:
                         )
                         sample_rate = sr
                         audio_data = wave
-                        print(f"[IndexTTS Pro] ✅ Generated audio for {role} with emotion: '{emotion}'")
+                        ew_info = f" (ew: {current_emotion_weight})" if line_emotion_weight is not None else ""
+                        print(f"[IndexTTS Pro] ✅ Generated audio for {role} with emotion: '{emotion}'{ew_info}")
                     else:
                         # 使用V1/V1.5 API / Use V1/V1.5 API
                         # 注意: V1/V1.5不支持情感控制，emotion参数被忽略 / Note: V1/V1.5 don't support emotion control, emotion parameter is ignored
@@ -551,12 +594,17 @@ class IndexTTSProNode:
                         audio_segments.append((audio_data, sample_rate))
                         
                         # 添加行间停顿 (除了最后一段) / Add pause between lines (except for last segment)
-                        if pause_between_lines > 0 and segment_idx < len(parsed_text) - 1:
-                            silence_samples = int(pause_between_lines * sample_rate)
-                            silence = np.zeros(silence_samples, dtype=np.float32)
-                            audio_segments.append((silence, sample_rate))
-                            current_time += pause_between_lines
-                            print(f"[IndexTTS Pro] Added {pause_between_lines}s pause after {role}")
+                        if segment_idx < len(parsed_text) - 1:
+                            # 确定使用的停顿时长：优先使用行级设置，否则使用全局设置 / Determine pause duration: prefer line-level setting, otherwise use global setting
+                            current_pause_duration = line_pause_duration if line_pause_duration is not None else pause_between_lines
+                            
+                            if current_pause_duration > 0:
+                                silence_samples = int(current_pause_duration * sample_rate)
+                                silence = np.zeros(silence_samples, dtype=np.float32)
+                                audio_segments.append((silence, sample_rate))
+                                current_time += current_pause_duration
+                                pause_source = "line-level" if line_pause_duration is not None else "global"
+                                print(f"[IndexTTS Pro] Added {current_pause_duration}s pause after {role} (from {pause_source} setting)")
                     else:
                         print(f"[IndexTTS Pro] Warning: Invalid audio data for {role}")
                     
