@@ -32,6 +32,11 @@ class IndexTTSProNode:
     
     情感控制仅在IndexTTS-2模型中可用 / Emotion control only available with IndexTTS-2 model
     
+    情感模式 / Emotion modes:
+    1. 显式情感 / Explicit emotion: 使用emo属性指定 / Use emo attribute
+    2. 自动情感 / Automatic emotion: 启用auto_emotion从对话内容自动分析 / Enable auto_emotion for auto analysis
+    3. 抑制情感 / Suppress emotion: 使用emo=""明确禁用情感 / Use emo="" to explicitly disable emotion
+    
     支持的情感类型 / Supported emotion types:
     愤怒(angry), 高兴(happy), 恐惧(afraid), 反感(disgusted), 
     悲伤(sad), 低落(melancholic), 惊讶(surprised), 自然(calm)
@@ -64,6 +69,7 @@ class IndexTTSProNode:
                 "do_sample": ("BOOLEAN", {"default": False}),
                 "mode": (["Auto", "Duration", "Tokens"], {"default": "Auto"}),
                 "emotion_weight": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.05, "description": "情感强度控制 / Emotion intensity control (现已修复，支持情感文本模式 / Now fixed, supports emotion text mode)"}),
+                "auto_emotion": ("BOOLEAN", {"default": False, "description": "自动情感分析 / Automatic emotion analysis from dialogue text (IndexTTS-2 only)"}),
                 "pause_between_lines": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 5.0, "step": 0.01, "description": "行间停顿时长(秒) / Pause duration between lines (seconds)"}),
             }
         }
@@ -214,8 +220,8 @@ class IndexTTSProNode:
             list: 解析后的文本段落列表，每个元素为 (role, text, emotion) / List of parsed text segments, each element is (role, text, emotion)
         """
         segments = []
-        # 标签匹配模式，支持可选的emo属性 / Tag matching pattern with optional emo attribute
-        pattern = re.compile(r'<(Narrator|Character\d+)(?:\s+emo="([^"]*)")?>(.*?)(?=<|$)', re.DOTALL)
+        # 简单匹配模式，捕获整个标签和内容 / Simple matching pattern to capture entire tag and content
+        pattern = re.compile(r'<(Narrator|Character\d+)([^>]*)>(.*?)(?=<|$)', re.DOTALL)
         
         # 查找所有匹配 / Find all matches
         matches = pattern.findall(structured_text)
@@ -224,9 +230,14 @@ class IndexTTSProNode:
         if not matches:
             segments.append(("Narrator", structured_text.strip(), None))
         else:
-            for role, emotion, text in matches:
-                # 清理并处理emotion / Clean and process emotion
-                emotion = emotion.strip() if emotion else None
+            for role, attributes, text in matches:
+                # 分析属性部分，查找emo="..." / Analyze attributes part, look for emo="..."
+                emotion = None
+                if attributes.strip():
+                    emo_match = re.search(r'emo="([^"]*)"', attributes)
+                    if emo_match:
+                        emotion = emo_match.group(1).strip()  # 可能是空字符串或有内容 / Could be empty string or have content
+                
                 text = text.strip()
                 if text:  # 只添加非空文本 / Only add non-empty text
                     segments.append((role, text, emotion))
@@ -362,7 +373,7 @@ class IndexTTSProNode:
                                    repetition_penalty=10.0, length_penalty=0.0, 
                                    num_beams=3, max_mel_tokens=1500,
                                    do_sample=False, mode="Auto", emotion_weight=0.8,
-                                   pause_between_lines=0.2):
+                                   auto_emotion=False, pause_between_lines=0.2):
         """
         生成多角色语音的主函数 / Main function for generating multi-character speech
         
@@ -384,6 +395,7 @@ class IndexTTSProNode:
             do_sample: 是否使用采样 / Whether to use sampling (V2 only)
             mode: 生成模式 / Generation mode (V2 only)
             emotion_weight: 情感强度控制 / Emotion intensity control (0.0-1.6, V2 only)
+            auto_emotion: 自动情感分析 / Automatic emotion analysis from dialogue text (V2 only)
             pause_between_lines: 行间停顿时长(秒) / Pause duration between lines (seconds)
         """
         try:
@@ -435,10 +447,31 @@ class IndexTTSProNode:
                     if is_v2:
                         # 使用V2 API / Use V2 API
                         # 注意: V2不支持speed参数 / Note: V2 does not support speed parameter
-                        if emotion:
-                            print(f"[IndexTTS Pro] Emotion Text Input: '{emotion}' (weight: {emotion_weight})")
+                        
+                        # 确定是否使用情感分析 / Determine whether to use emotion analysis
+                        use_emotion_analysis = False
+                        emotion_text_input = None
+                        
+                        if emotion is not None:
+                            # 检查是否显式抑制情感 / Check if emotion is explicitly suppressed
+                            if emotion == "":
+                                # 显式抑制情感：emo="" / Explicitly suppress emotion: emo=""
+                                use_emotion_analysis = False
+                                emotion_text_input = None
+                                print(f"[IndexTTS Pro] Emotion explicitly suppressed for {role}")
+                            else:
+                                # 显式指定了情感文本 / Explicit emotion text specified
+                                emotion_text_input = emotion
+                                use_emotion_analysis = True
+                                print(f"[IndexTTS Pro] Explicit Emotion Text: '{emotion}' (weight: {emotion_weight})")
+                        elif auto_emotion:
+                            # 自动情感分析模式：使用对话文本本身 / Automatic emotion mode: use dialogue text itself
+                            emotion_text_input = None  # 让引擎自动使用text参数 / Let engine auto-use text parameter
+                            use_emotion_analysis = True
+                            print(f"[IndexTTS Pro] Automatic Emotion Analysis enabled for: '{text[:50]}...'" if len(text) > 50 else f"[IndexTTS Pro] Automatic Emotion Analysis enabled for: '{text}'")
                         else:
-                            print("[IndexTTS Pro] No emotion specified")
+                            print("[IndexTTS Pro] No emotion processing")
+                        
                         ref_processed = self._process_audio_input(ref_audio)
                         sr, wave, sub = self.tts2_engine.generate(
                             text=text,
@@ -452,11 +485,11 @@ class IndexTTSProNode:
                             repetition_penalty=repetition_penalty,
                             length_penalty=length_penalty,
                             max_mel_tokens=max_mel_tokens,
-                            emo_text=emotion,  # 使用解析出的情感文本 / Use parsed emotion text
+                            emo_text=emotion_text_input,  # None会让引擎自动使用text / None lets engine auto-use text
                             emo_ref_audio=None,
                             emo_vector=None,
                             emo_weight=emotion_weight,  # 使用用户设定的情感强度 / Use user-defined emotion intensity
-                            use_qwen=bool(emotion),  # 启用Qwen情感分析 / Enable Qwen emotion analysis
+                            use_qwen=use_emotion_analysis,  # 根据情况启用Qwen分析 / Enable Qwen analysis based on conditions
                             verbose=True,  # 启用详细日志显示情感向量 / Enable verbose logging to show emotion vectors
                             seed=seed,
                             return_subtitles=True,

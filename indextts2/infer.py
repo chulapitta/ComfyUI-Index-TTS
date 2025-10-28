@@ -89,9 +89,10 @@ class IndexTTS2Engine:
         use_emo_text = False
         _emo_text = None
         if emo_wav_path is None and (emo_vector is None or len(emo_vector) == 0):
-            if use_qwen and emo_text and str(emo_text).strip():
+            if use_qwen:
                 use_emo_text = True
-                _emo_text = emo_text
+                # If emo_text is provided, use it; if None/empty, let engine use main text
+                _emo_text = emo_text if (emo_text and str(emo_text).strip()) else None
 
         # Call upstream infer; output_path=None returns (sr, wav_int16_numpy_TxC)
         result = tts.infer(
