@@ -32,6 +32,8 @@ ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality t
 1. **Explicit Emotion Tags**: `<Character1 emo="excited and joyful">Dialogue</Character1>`
 2. **Automatic Emotion Analysis**: AI-powered emotion detection using Qwen model
 3. **Emotion Suppression**: `<Character1 emo="">Dialogue</Character1>` to disable emotion
+4. **Per-Line Emotion Weight**: `<Character1 emo="sad" ew="0.8">Dialogue</Character1>` for fine-tuned intensity
+5. **Per-Line Pause Control**: `<Character1 pause="2.0">Dialogue</Character1>` for custom timing
 
 #### **Supported Emotions**
 - **angry** - Angry, furious tone
@@ -43,29 +45,23 @@ ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality t
 - **surprised** - Surprised, shocked tone
 - **calm** - Natural, peaceful tone
 
-#### **Text Format Support**
+#### **Advanced Text Format Support**
 ```xml
 <Narrator>Narrative content here</Narrator>
 <Character1 emo="excited">Character 1 dialogue with emotion</Character1>
-<Character2>Character 2 dialogue (auto-emotion if enabled)</Character2>
-<Character3 emo="">Character 3 dialogue (emotion suppressed)</Character3>
+<Character2 emo="sad" ew="0.8">Character 2 with custom emotion intensity</Character2>
+<Character3 pause="2.0">Character 3 with custom pause duration</Character3>
+<Character4 emo="angry" ew="0.9" pause="1.5">Full control: emotion + intensity + pause</Character4>
+<Character5 emo="" pause="0">Character 5 dialogue (emotion suppressed, no pause)</Character5>
 ```
 
-### 🚀 Quick Start
+#### **Attribute Reference**
+- **emo="text"**: Emotion description (e.g., "excited", "sad and disappointed")
+- **emo=""**: Explicitly disable emotion for this line
+- **ew="0.0-1.0"**: Per-line emotion weight (overrides global emotion_weight)
+- **pause="0.0-10.0"**: Per-line pause duration in seconds (overrides global pause_between_lines)
 
-1. **Installation**
-   ```bash
-   cd ComfyUI/custom_nodes
-   git clone https://github.com/chulapitta/ComfyUI-Index-TTS.git
-   cd ComfyUI-Index-TTS
-   pip install -r requirements.txt
-   ```
-
-2. **Download Models** (see Chinese section for detailed instructions)
-   - Place IndexTTS-2 models in `ComfyUI/models/IndexTTS-2/`
-   - Use the included download script: `python TTS2_download.py`
-
-3. **Basic Usage**
+### Basic Usage
    - Add **Index TTS Pro** node in ComfyUI
    - Connect narrator audio and optional character audio files
    - Input structured text with character tags
@@ -117,14 +113,23 @@ ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality t
 
 ## 最新更新（重要）
 
-本项目已新增对 IndexTTS-2（简称 TTS2）的支持，并将功能拆分为四个核心节点，方便在 ComfyUI 中按需组合：
-基础工作流已更新，详见./workflow/TTS2.json.
-会有一些BUG，欢迎反馈。功能基本复刻了原版IndexTTS，关于功能建议欢迎交流。
+### 🎭 IndexTTS Pro 节点（推荐小说朗读）
+专为小说阅读设计的一体化解决方案，支持：
+- **多角色语音合成**：一次处理整篇小说，自动分配不同角色声音
+- **高级情感控制系统**：支持显式情感标签、自动情感分析、情感抑制三种模式
+- **行级精细控制**：每行可独立设置情感强度(`ew`)和停顿时长(`pause`)
+- **智能文本解析**：自动识别角色对话和旁白，支持复杂结构化文本格式
+- **音频拼接优化**：智能行间停顿控制，生成流畅的长篇音频
+- **字幕生成**：自动生成时间轴对齐的字幕文件（JSON + 简化格式）
 
+### 🔧 分离式TTS2节点（推荐高级用户）
+功能拆分为四个核心节点，方便在 ComfyUI 中按需组合：
 - Index TTS 2 - Base（基础合成）
 - Index TTS 2 - Emotion Audio（基于参考音频情绪复刻）
 - Index TTS 2 - Emotion Vector（基于情绪向量复刻）
 - Index TTS 2 - Emotion Text（基于情绪文本复刻）
+
+基础工作流已更新，详见./workflow/TTS2.json.
 
 <img width="3090" height="1389" alt="image" src="https://github.com/user-attachments/assets/b12dae62-0ae3-49a7-99a9-f153218328fa" />
 
@@ -265,11 +270,48 @@ python -m pip install -U "huggingface_hub[hf_xet]"
 
 ## 功能特点
 
+### 🎯 核心功能
 - 支持中文和英文文本合成
 - 基于参考音频复刻声音特征（变声功能）
 - 支持调节语速（原版不支持后处理实现效果会有一点折损）
 - 多种音频合成参数控制
 - Windows兼容（无需额外依赖）
+
+### 🎭 IndexTTS Pro 高级功能
+- **多角色支持**：最多支持5个不同角色 + 旁白，每个角色可配置独立的参考音频
+- **智能情感控制**：
+  - 显式情感标签：`<Character1 emo="开心而兴奋">对话内容</Character1>`
+  - 自动情感分析：基于Qwen模型自动从对话内容分析情感
+  - 情感抑制模式：`<Character1 emo="">对话内容</Character1>` 明确禁用情感
+  - 行级情感强度：`<Character1 emo="悲伤" ew="0.8">对话</Character1>` 精确控制每行情感强度
+- **精细停顿控制**：
+  - 全局停顿设置：统一控制所有行间停顿
+  - 行级停顿控制：`<Character1 pause="2.0">对话</Character1>` 自定义每行后的停顿时长
+  - 零停顿支持：`<Character1 pause="0">对话</Character1>` 实现快速对话
+- **结构化文本支持**：
+  ```xml
+  <Narrator>旁白文本</Narrator>
+  <Character1 emo="excited" ew="0.9" pause="1.0">兴奋对话</Character1>
+  <Character2 emo="sad" ew="0.4" pause="2.5">悲伤对话（长停顿）</Character2>
+  <Character3 pause="0.1">快速回应</Character3>
+  <Character4 emo="angry" ew="0.8">愤怒对话</Character4>
+  <Character5 emo="">平静叙述（无情感）</Character5>
+  ```
+- **音频优化**：
+  - 智能音频拼接和归一化
+  - 自动生成时间轴字幕（JSON + 简化格式）
+  - 支持长篇文本的内存优化处理
+
+### 📊 支持的情感类型
+IndexTTS-2模式下支持以下情感：
+- 愤怒 (angry) - 生气、愤怒的语调
+- 高兴 (happy) - 开心、愉悦的语调  
+- 恐惧 (afraid) - 害怕、紧张的语调
+- 反感 (disgusted) - 厌恶、不满的语调
+- 悲伤 (sad) - 伤心、难过的语调
+- 低落 (melancholic) - 沮丧、忧郁的语调
+- 惊讶 (surprised) - 惊讶、震惊的语调
+- 自然 (calm) - 平静、自然的语调
 
 
 ## 废话两句
@@ -299,6 +341,35 @@ python -m pip install -U "huggingface_hub[hf_xet]"
 
 
 ## 更新日志
+
+### 2025-10-28（最新 - 本Fork新增功能）
+
+#### 🎯 行级精细控制系统
+- **行级情感强度控制**：新增 `ew` 属性，支持每行独立设置情感强度
+  - 使用示例：`<Character1 emo="愤怒" ew="0.9">非常生气的对话</Character1>`
+  - 优先级：行级设置 > 全局 emotion_weight 参数
+  - 取值范围：0.0-1.0，自动验证和限制范围
+- **行级停顿控制**：新增 `pause` 属性，支持每行独立设置停顿时长
+  - 使用示例：`<Character1 pause="2.5">需要长停顿的对话</Character1>`
+  - 优先级：行级设置 > 全局 pause_between_lines 参数
+  - 取值范围：0.0-10.0 秒，支持零停顿实现快速对话
+- **组合使用**：支持多属性同时使用
+  - 完整示例：`<Character1 emo="惊讶而震惊" ew="0.8" pause="1.5">什么？！</Character1>`
+- **智能日志**：详细显示每行使用的参数来源（行级 vs 全局设置）
+
+#### 🎭 情感控制增强
+- **三重情感模式完善**：显式情感、自动情感分析、情感抑制三种模式协同工作
+- **情感强度微调**：0.0-1.0 无级调节，支持从微妙表达到强烈情感的全范围控制
+- **自动情感分析优化**：基于Qwen模型的智能情感识别，配合行级强度控制
+
+#### 📖 实用示例
+```xml
+<Narrator>故事开始了...</Narrator>
+<Character1 emo="兴奋而期待" ew="0.9" pause="0.5">太好了！</Character1>
+<Character2 emo="怀疑" ew="0.6" pause="2.0">真的吗？</Character2>
+<Character1 pause="0.1">当然！</Character1>
+<Character3 emo="" pause="1.0">请保持安静。</Character3>
+```
 
 ### 2025-06-24
 
