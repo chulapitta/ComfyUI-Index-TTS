@@ -22,15 +22,22 @@ from .indextts2 import IndexTTS2Loader, IndexTTS2Engine
 
 class IndexTTSProNode:
     """
-    ComfyUI的IndexTTS Pro节点，专用于小说阅读，支持多角色语音合成
-    ComfyUI IndexTTS Pro node for novel reading with multi-character voice synthesis
+    ComfyUI的IndexTTS Pro节点，专用于小说阅读，支持多角色语音合成和情感控制
+    ComfyUI IndexTTS Pro node for novel reading with multi-character voice synthesis and emotion control
+    
+    支持格式 / Supported format:
+    <Narrator>旁白文本</Narrator>
+    <Character1 emo="excited">角色对话</Character1>
+    <Character2 emo="sad">悲伤的对话</Character2>
+    
+    情感控制仅在IndexTTS-2模型中可用 / Emotion control only available with IndexTTS-2 model
     """
     
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "structured_text": ("STRING", {"multiline": True, "default": "<Narrator>This is a sample narrative text.<Character1>Hello.<Narrator>He said."}),
+                "structured_text": ("STRING", {"multiline": True, "default": "<Narrator>This is a sample narrative text.<Character1 emo=\"excited\">Hello!<Narrator>He said cheerfully."}),
                 "narrator_audio": ("AUDIO", {"description": "正文/旁白的参考音频 / Narrator reference audio"}),
                 "model_version": (["Index-TTS", "IndexTTS-1.5", "IndexTTS-2"], {"default": "IndexTTS-2"}),
                 "language": (["auto", "zh", "en"], {"default": "auto"}),
@@ -52,6 +59,7 @@ class IndexTTSProNode:
                 "max_mel_tokens": ("INT", {"default": 1500, "min": 100, "max": 3000, "step": 50}),
                 "do_sample": ("BOOLEAN", {"default": False}),
                 "mode": (["Auto", "Duration", "Tokens"], {"default": "Auto"}),
+                "emotion_weight": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.6, "step": 0.05, "description": "情感强度控制 / Emotion intensity control (IndexTTS-2 only)"}),
             }
         }
     
@@ -194,25 +202,30 @@ class IndexTTSProNode:
         """解析结构化文本 / Parse structured text
         
         Args:
-            structured_text: 结构化文本，如 / Structured text, e.g. "<Narrator>This is narrative text<Character1>This is Character1's line"
+            structured_text: 结构化文本，支持情感属性 / Structured text, supports emotion attributes
+                           e.g. "<Narrator>This is narrative text<Character1 emo="excited">Hello!</Character1>"
             
         Returns:
-            list: 解析后的文本段落列表，每个元素为 (role, text) / List of parsed text segments, each element is (role, text)
+            list: 解析后的文本段落列表，每个元素为 (role, text, emotion) / List of parsed text segments, each element is (role, text, emotion)
         """
         segments = []
-        # 标签匹配模式 / Tag matching pattern
-        pattern = re.compile(r'<(Narrator|Character\d+)>([^<]+)')
+        # 标签匹配模式，支持可选的emo属性 / Tag matching pattern with optional emo attribute
+        pattern = re.compile(r'<(Narrator|Character\d+)(?:\s+emo="([^"]*)")?>(.*?)(?=<|$)', re.DOTALL)
         
         # 查找所有匹配 / Find all matches
         matches = pattern.findall(structured_text)
         
         # 如果找不到任何匹配，将整个文本作为旁白处理 / If no matches found, treat entire text as narrator
         if not matches:
-            segments.append(("Narrator", structured_text))
+            segments.append(("Narrator", structured_text.strip(), None))
         else:
-            for role, text in matches:
-                segments.append((role, text))
-                
+            for role, emotion, text in matches:
+                # 清理并处理emotion / Clean and process emotion
+                emotion = emotion.strip() if emotion else None
+                text = text.strip()
+                if text:  # 只添加非空文本 / Only add non-empty text
+                    segments.append((role, text, emotion))
+                    
         return segments
     
     def _concatenate_audio(self, audio_segments):
@@ -343,7 +356,7 @@ class IndexTTSProNode:
                                    temperature=0.8, top_p=0.9, top_k=30, 
                                    repetition_penalty=10.0, length_penalty=0.0, 
                                    num_beams=3, max_mel_tokens=1500,
-                                   do_sample=False, mode="Auto"):
+                                   do_sample=False, mode="Auto", emotion_weight=0.8):
         """
         生成多角色语音的主函数 / Main function for generating multi-character speech
         
@@ -364,6 +377,7 @@ class IndexTTSProNode:
             max_mel_tokens: 最大mel token数 / Max mel tokens
             do_sample: 是否使用采样 / Whether to use sampling (V2 only)
             mode: 生成模式 / Generation mode (V2 only)
+            emotion_weight: 情感强度控制 / Emotion intensity control (0.0-1.6, V2 only)
         """
         try:
             print(f"[IndexTTS Pro] Starting multi-voice generation with structured_text: {structured_text[:100]}...")
@@ -395,8 +409,10 @@ class IndexTTSProNode:
             # 判断是否使用V2模型 / Check if using V2 model
             is_v2 = (model_version == "IndexTTS-2")
             
-            for role, text in parsed_text:
-                print(f"[IndexTTS Pro] Processing: {role} - {text[:50]}...")
+            for role, text, emotion in parsed_text:
+                emotion_text = f" (emotion: {emotion})" if emotion else ""
+                print(f"\n[IndexTTS Pro] 🎭 Processing: {role}{emotion_text}")
+                print(f"[IndexTTS Pro] 📝 Text: {text[:100]}{'...' if len(text) > 100 else ''}")
                 
                 # 选择参考音频 / Select reference audio
                 if role == "Narrator":
@@ -412,6 +428,10 @@ class IndexTTSProNode:
                     if is_v2:
                         # 使用V2 API / Use V2 API
                         # 注意: V2不支持speed参数 / Note: V2 does not support speed parameter
+                        if emotion:
+                            print(f"[IndexTTS Pro] Emotion Text Input: '{emotion}' (weight: {emotion_weight})")
+                        else:
+                            print("[IndexTTS Pro] No emotion specified")
                         ref_processed = self._process_audio_input(ref_audio)
                         sr, wave, sub = self.tts2_engine.generate(
                             text=text,
@@ -425,17 +445,23 @@ class IndexTTSProNode:
                             repetition_penalty=repetition_penalty,
                             length_penalty=length_penalty,
                             max_mel_tokens=max_mel_tokens,
-                            emo_text=None,  # 暂不支持情感控制 / Emotion control not yet supported
+                            emo_text=emotion,  # 使用解析出的情感文本 / Use parsed emotion text
                             emo_ref_audio=None,
                             emo_vector=None,
-                            emo_weight=0.8,
+                            emo_weight=emotion_weight,  # 使用用户设定的情感强度 / Use user-defined emotion intensity
+                            use_qwen=bool(emotion),  # 启用Qwen情感分析 / Enable Qwen emotion analysis
+                            verbose=True,  # 启用详细日志显示情感向量 / Enable verbose logging to show emotion vectors
                             seed=seed,
-                            return_subtitles=False,
+                            return_subtitles=True,
                         )
                         sample_rate = sr
                         audio_data = wave
+                        print(f"[IndexTTS Pro] ✅ Generated audio for {role} with emotion: '{emotion}'")
                     else:
                         # 使用V1/V1.5 API / Use V1/V1.5 API
+                        # 注意: V1/V1.5不支持情感控制，emotion参数被忽略 / Note: V1/V1.5 don't support emotion control, emotion parameter is ignored
+                        if emotion:
+                            print(f"[IndexTTS Pro] Warning: Emotion '{emotion}' specified but V1/V1.5 models don't support emotion control")
                         result = self.tts_model.infer(
                             reference_audio=self._process_audio_input(ref_audio),
                             text=text,
@@ -475,6 +501,9 @@ class IndexTTSProNode:
                             "start": start_time,
                             "end": end_time
                         }
+                        # 如果有情感信息，添加到字幕数据中 / If emotion info exists, add to subtitle data
+                        if emotion:
+                            subtitle_item["emotion"] = emotion
                         subtitle_data.append(subtitle_item)
                         current_time += audio_length
                         
