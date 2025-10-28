@@ -2,8 +2,8 @@
 
 > **🍴 This is a Fork** - Enhanced ComfyUI implementation of IndexTTS with advanced multi-character support and emotion control features.
 > 
-> **Original Project**: [IndexTTS](https://github.com/index-tts/index-tts) by IndexTeam  
-> **Fork Enhancements**: Multi-character voice synthesis, emotion control system, automatic emotion analysis, structured text parsing, and comprehensive ComfyUI integration.
+> **Fork Chain**: [IndexTTS](https://github.com/index-tts/index-tts) → [chenpipi0807/ComfyUI-Index-TTS](https://github.com/chenpipi0807/ComfyUI-Index-TTS) → **This Fork**  
+> **This Fork's Enhancements**: Multi-character voice synthesis, emotion control system, automatic emotion analysis, structured text parsing, and advanced IndexTTS Pro node.
 
 ---
 
@@ -11,13 +11,13 @@
 
 ### 📢 Disclaimer
 
-This project is a secondary development based on an open-source project from Bilibili (IndexTTS). I have implemented ComfyUI integration and developed feature optimizations, adjustments, and advanced functionalities. However, it must be emphasized that **this project is strictly prohibited for any illegal purposes or any behavior related to copyright infringement!** This project is only for communication and learning within the open-source community to promote technology sharing and innovation, aiming to provide beneficial references and learning resources for developers.
+This project is a fork of [chenpipi0807/ComfyUI-Index-TTS](https://github.com/chenpipi0807/ComfyUI-Index-TTS), which itself is based on the open-source IndexTTS project from Bilibili. This fork adds advanced multi-character synthesis and emotion control features. However, it must be emphasized that **this project is strictly prohibited for any illegal purposes or any behavior related to copyright infringement!** This project is only for communication and learning within the open-source community to promote technology sharing and innovation, aiming to provide beneficial references and learning resources for developers.
 
 It is hereby solemnly declared that all personal use behaviors are not associated with the developer or this project itself. The developer does not assume any responsibility for users' behaviors, and users should bear all risks and legal responsibilities that may arise during use. Please use this project reasonably and legally under the premise of complying with laws, regulations, and related provisions.
 
 ### 🎯 Overview
 
-ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality text-to-speech conversion using IndexTTS models. This fork adds powerful multi-character voice synthesis, emotion control, and novel reading capabilities on top of the original IndexTTS implementation.
+ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality text-to-speech conversion using IndexTTS models. This fork builds upon chenpipi0807's excellent ComfyUI implementation and adds powerful multi-character voice synthesis, emotion control, and novel reading capabilities with advanced features like automatic emotion analysis and structured text processing.
 
 ### 🎭 Key Features Added in This Fork
 
