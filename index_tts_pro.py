@@ -27,10 +27,14 @@ class IndexTTSProNode:
     
     支持格式 / Supported format:
     <Narrator>旁白文本</Narrator>
-    <Character1 emo="excited">角色对话</Character1>
-    <Character2 emo="sad">悲伤的对话</Character2>
+    <Character1 emo="开心而兴奋">角色对话</Character1>
+    <Character2 emo="悲伤而难过">悲伤的对话</Character2>
     
     情感控制仅在IndexTTS-2模型中可用 / Emotion control only available with IndexTTS-2 model
+    
+    支持的情感类型 / Supported emotion types:
+    愤怒(angry), 高兴(happy), 恐惧(afraid), 反感(disgusted), 
+    悲伤(sad), 低落(melancholic), 惊讶(surprised), 自然(calm)
     """
     
     @classmethod
@@ -59,7 +63,7 @@ class IndexTTSProNode:
                 "max_mel_tokens": ("INT", {"default": 1500, "min": 100, "max": 3000, "step": 50}),
                 "do_sample": ("BOOLEAN", {"default": False}),
                 "mode": (["Auto", "Duration", "Tokens"], {"default": "Auto"}),
-                "emotion_weight": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.6, "step": 0.05, "description": "情感强度控制 / Emotion intensity control (IndexTTS-2 only)"}),
+                "emotion_weight": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.05, "description": "情感强度控制 / Emotion intensity control (现已修复，支持情感文本模式 / Now fixed, supports emotion text mode)"}),
             }
         }
     

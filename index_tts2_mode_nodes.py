@@ -157,20 +157,29 @@ class IndexTTS2EmotionAudioNode(_IndexTTS2BaseMixin):
 
 
 class IndexTTS2EmotionVectorNode(_IndexTTS2BaseMixin):
+    """
+    IndexTTS2 Emotion Vector Node - Direct emotion control via 8-dimensional vector
+    
+    Corrected emotion mappings (after upstream patches):
+    高兴(Happy), 愤怒(Angry), 悲伤(Sad), 恐惧(Fear), 
+    反感(Disgusted), 低落(Melancholic), 惊讶(Surprise), 自然(Calm)
+    
+    Note: 低落 now correctly maps to "melancholic" instead of "love"
+    """
     @classmethod
     def INPUT_TYPES(cls):
         opt = cls._common_optional().copy()
         # 8 sliders in-node
         opt.update({
-            # Align with upstream UI range 0~1.4 for each component
-            "Happy": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Angry": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Sad": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Fear": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Hate": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Love": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Surprise": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
-            "Neutral": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            # Corrected emotion labels - align with upstream UI range 0~1.4 for each component
+            "高兴_Happy": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "愤怒_Angry": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "悲伤_Sad": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "恐惧_Fear": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "反感_Disgusted": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "低落_Melancholic": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "惊讶_Surprise": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
+            "自然_Calm": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.4, "step": 0.01}),
         })
         return {"required": cls._base_inputs(), "optional": opt}
 
@@ -184,14 +193,14 @@ class IndexTTS2EmotionVectorNode(_IndexTTS2BaseMixin):
         self.engine = IndexTTS2Engine(self.loader)
 
     def generate(self, text, reference_audio, mode,
-                 Happy=0.0, Angry=0.0, Sad=0.0, Fear=0.0, Hate=0.0, Love=0.0, Surprise=0.0, Neutral=0.0,
+                 高兴_Happy=0.0, 愤怒_Angry=0.0, 悲伤_Sad=0.0, 恐惧_Fear=0.0, 反感_Disgusted=0.0, 低落_Melancholic=0.0, 惊讶_Surprise=0.0, 自然_Calm=0.0,
                  
                  do_sample_mode="off", temperature=0.8, top_p=0.9, top_k=30, num_beams=3,
                  repetition_penalty=10.0, length_penalty=0.0, max_mel_tokens=1815,
                  max_tokens_per_sentence=120, seed=0, return_subtitles=True,
                  cache_control=None):
         ref = self._process_audio_input(reference_audio)
-        vec = [Happy, Angry, Sad, Fear, Hate, Love, Surprise, Neutral]
+        vec = [高兴_Happy, 愤怒_Angry, 悲伤_Sad, 恐惧_Fear, 反感_Disgusted, 低落_Melancholic, 惊讶_Surprise, 自然_Calm]
         s = float(sum(max(0.0, float(x)) for x in vec))
         emo_vec = ([float(max(0.0, float(x)))/s for x in vec] if s > 0 else [0.0]*7 + [1.0])
         out = self._do_generate(
