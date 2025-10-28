@@ -1,3 +1,104 @@
+# ComfyUI-Index-TTS
+
+> **🍴 This is a Fork** - Enhanced ComfyUI implementation of IndexTTS with advanced multi-character support and emotion control features.
+> 
+> **Original Project**: [IndexTTS](https://github.com/index-tts/index-tts) by IndexTeam  
+> **Fork Enhancements**: Multi-character voice synthesis, emotion control system, automatic emotion analysis, structured text parsing, and comprehensive ComfyUI integration.
+
+---
+
+## English Documentation
+
+### 📢 Disclaimer
+
+This project is a secondary development based on an open-source project from Bilibili (IndexTTS). I have implemented ComfyUI integration and developed feature optimizations, adjustments, and advanced functionalities. However, it must be emphasized that **this project is strictly prohibited for any illegal purposes or any behavior related to copyright infringement!** This project is only for communication and learning within the open-source community to promote technology sharing and innovation, aiming to provide beneficial references and learning resources for developers.
+
+It is hereby solemnly declared that all personal use behaviors are not associated with the developer or this project itself. The developer does not assume any responsibility for users' behaviors, and users should bear all risks and legal responsibilities that may arise during use. Please use this project reasonably and legally under the premise of complying with laws, regulations, and related provisions.
+
+### 🎯 Overview
+
+ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality text-to-speech conversion using IndexTTS models. This fork adds powerful multi-character voice synthesis, emotion control, and novel reading capabilities on top of the original IndexTTS implementation.
+
+### 🎭 Key Features Added in This Fork
+
+#### **IndexTTS Pro Node** - Multi-Character Voice Synthesis
+- **Multi-Character Support**: Handle up to 5 different characters + narrator with individual voice settings
+- **Advanced Emotion Control**: Three emotion modes for sophisticated expression control
+- **Structured Text Processing**: Parse and process novel-style text with character tags
+- **Automatic Audio Concatenation**: Seamless stitching of multi-character dialogues
+- **Subtitle Generation**: Time-aligned subtitles in JSON and simplified formats
+
+#### **Enhanced Emotion System** (IndexTTS-2)
+1. **Explicit Emotion Tags**: `<Character1 emo="excited and joyful">Dialogue</Character1>`
+2. **Automatic Emotion Analysis**: AI-powered emotion detection using Qwen model
+3. **Emotion Suppression**: `<Character1 emo="">Dialogue</Character1>` to disable emotion
+
+#### **Supported Emotions**
+- **angry** - Angry, furious tone
+- **happy** - Joyful, cheerful tone  
+- **afraid** - Fearful, nervous tone
+- **disgusted** - Disgusted, dissatisfied tone
+- **sad** - Sorrowful, melancholic tone
+- **melancholic** - Depressed, gloomy tone
+- **surprised** - Surprised, shocked tone
+- **calm** - Natural, peaceful tone
+
+#### **Text Format Support**
+```xml
+<Narrator>Narrative content here</Narrator>
+<Character1 emo="excited">Character 1 dialogue with emotion</Character1>
+<Character2>Character 2 dialogue (auto-emotion if enabled)</Character2>
+<Character3 emo="">Character 3 dialogue (emotion suppressed)</Character3>
+```
+
+### 🚀 Quick Start
+
+1. **Installation**
+   ```bash
+   cd ComfyUI/custom_nodes
+   git clone https://github.com/chulapitta/ComfyUI-Index-TTS.git
+   cd ComfyUI-Index-TTS
+   pip install -r requirements.txt
+   ```
+
+2. **Download Models** (see Chinese section for detailed instructions)
+   - Place IndexTTS-2 models in `ComfyUI/models/IndexTTS-2/`
+   - Use the included download script: `python TTS2_download.py`
+
+3. **Basic Usage**
+   - Add **Index TTS Pro** node in ComfyUI
+   - Connect narrator audio and optional character audio files
+   - Input structured text with character tags
+   - Configure emotion settings and run workflow
+
+### 🔧 Key Parameters
+
+- **emotion_weight** (0.0-1.0): Controls emotion expression intensity
+- **auto_emotion** (True/False): Enable AI-powered emotion analysis  
+- **pause_between_lines** (0.0-5.0): Pause duration between lines in seconds
+- **model_version**: Index-TTS / IndexTTS-1.5 / IndexTTS-2 (recommended)
+
+### 💡 Optimization Tips
+
+#### Voice Quality
+- Use high-quality reference audio (clear, 10-30 seconds, no noise)
+- Adjust `temperature` (0.7-0.9) for better results
+- Increase `repetition_penalty` (10.0-12.0) for voice consistency
+
+#### Emotion Control
+- **Daily conversation**: `emotion_weight = 0.4-0.6`
+- **Dramatic performance**: `emotion_weight = 0.7-0.9`  
+- **Formal speech**: `emotion_weight = 0.2-0.4`
+- Use descriptive emotion text: "excited and joyful" > "happy"
+
+### 📁 Example Workflows
+- `workflow/TTS2.json` - IndexTTS-2 modular workflow
+- `workflow/读小说用这个.json` - Novel reading workflow with IndexTTS Pro
+
+---
+
+## 中文文档 / Chinese Documentation
+
 ## 免责声明
 
 本项目基于B站开源项目进行二次开发，由本人对项目进行了ComfyUI的实现，并进行了部分功能优化与调整与进阶功能的开发。然而，需要强调的是，本项目严禁用于任何非法目的以及与侵犯版权相关的任何行为！本项目仅用于开源社区内的交流与学习，以促进技术共享与创新，旨在为开发者提供有益的参考和学习资源。
@@ -5,9 +106,6 @@
 在此郑重声明，本项目所有个人使用行为与开发者本人及本项目本身均无任何关联。开发者对于项目使用者的行为不承担任何责任，使用者应自行承担使用过程中可能产生的所有风险和法律责任。请广大使用者在遵守法律法规及相关规定的前提下，合理、合法地使用本项目，维护开源社区的良好秩序与健康发展。
 
 感谢您的理解与支持！
-
-
-# ComfyUI-Index-TTS
 
 使用IndexTTS模型在ComfyUI中实现高质量文本到语音转换的自定义节点。支持中文和英文文本，可以基于参考音频复刻声音特征。
 
