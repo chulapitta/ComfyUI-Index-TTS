@@ -354,27 +354,58 @@ class IndexTTS2:
                   f"emo_text:{emo_text}")
         start_time = time.perf_counter()
 
-        if use_emo_text:
+        # if use_emo_text:
+        #     emo_audio_prompt = None
+        #     emo_alpha = 1.0
+        #     # assert emo_audio_prompt is None
+        #     # assert emo_alpha == 1.0
+        #     if emo_text is None:
+        #         emo_text = text
+        #     emo_dict, content = self.qwen_emo.inference(emo_text)
+        #     print(emo_dict)
+        #     emo_vector = list(emo_dict.values())
+
+        # if emo_vector is not None:
+        #     emo_audio_prompt = None
+        #     emo_alpha = 1.0
+        #     # assert emo_audio_prompt is None
+        #     # assert emo_alpha == 1.0
+
+        # if emo_audio_prompt is None:
+        #     emo_audio_prompt = spk_audio_prompt
+        #     emo_alpha = 1.0
+        #     # assert emo_alpha == 1.0
+
+        if use_emo_text or emo_vector is not None:
+            # we're using a text or emotion vector guidance; so we must remove
+            # "emotion reference voice", to ensure we use correct emotion mixing!
             emo_audio_prompt = None
-            emo_alpha = 1.0
-            # assert emo_audio_prompt is None
-            # assert emo_alpha == 1.0
+
+        if use_emo_text:
+            # automatically generate emotion vectors from text prompt
             if emo_text is None:
-                emo_text = text
+                emo_text = text  # use main text prompt
             emo_dict, content = self.qwen_emo.inference(emo_text)
-            print(emo_dict)
+            print(f"detected emotion vectors from text: {emo_dict}")
+            # convert ordered dict to list of vectors; the order is VERY important!
             emo_vector = list(emo_dict.values())
 
         if emo_vector is not None:
-            emo_audio_prompt = None
-            emo_alpha = 1.0
-            # assert emo_audio_prompt is None
-            # assert emo_alpha == 1.0
+            # we have emotion vectors; they can't be blended via alpha mixing
+            # in the main inference process later, so we must pre-calculate
+            # their new strengths here based on the alpha instead!
+            emo_vector_scale = max(0.0, min(1.0, emo_alpha))
+            if emo_vector_scale != 1.0:
+                # scale each vector and truncate to 4 decimals (for nicer printing)
+                emo_vector = [int(x * emo_vector_scale * 10000) / 10000 for x in emo_vector]
+                print(f"scaled emotion vectors to {emo_vector_scale}x: {emo_vector}")
 
         if emo_audio_prompt is None:
+            # we are not using any external "emotion reference voice"; use
+            # speaker's voice as the main emotion reference audio.
             emo_audio_prompt = spk_audio_prompt
+            # must always use alpha=1.0 when we don't have an external reference voice
             emo_alpha = 1.0
-            # assert emo_alpha == 1.0
 
         # 如果参考音频改变了，才需要重新生成, 提升速度
         if self.cache_spk_cond is None or self.cache_spk_audio_prompt != spk_audio_prompt:
@@ -679,17 +710,32 @@ class QwenEmotion:
         self.convert_dict = {
             "愤怒": "angry",
             "高兴": "happy",
-            "恐惧": "fear",
-            "反感": "hate",
+            "恐惧": "afraid",
+            "反感": "disgusted",
             "悲伤": "sad",
-            "低落": "low",
-            "惊讶": "surprise",
-            "自然": "neutral",
+            "低落": "melancholic",
+            "惊讶": "surprised",
+            "自然": "calm",
         }
-        self.backup_dict = {"happy": 0, "angry": 0, "sad": 0, "fear": 0, "hate": 0, "low": 0, "surprise": 0,
-                            "neutral": 1.0}
+        self.backup_dict = {"happy": 0, "angry": 0, "sad": 0, "afraid": 0, "disgusted": 0, "melancholic": 0, "surprised": 0,
+                            "calm": 1.0}
         self.max_score = 1.2
         self.min_score = 0.0
+
+        # TODO: the "低落" (melancholic) emotion will always be mapped to
+            # "悲伤" (sad) by QwenEmotion's text analysis. it doesn't know the
+            # difference between those emotions even if user writes exact words.
+            # SEE: `self.melancholic_words` for current workaround.
+        self.melancholic_words = {
+            # emotion text phrases that will force QwenEmotion's "悲伤" (sad) detection
+            # to become "低落" (melancholic) instead, to fix limitations mentioned above.
+            "低落",
+            "melancholy",
+            "melancholic",
+            "depression",
+            "depressed",
+            "gloomy",
+        }
 
     def convert(self, content):
         content = content.replace("\n", " ")
