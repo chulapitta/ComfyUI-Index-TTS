@@ -22,7 +22,7 @@ ComfyUI-Index-TTS is an enhanced ComfyUI custom node that enables high-quality t
 ### 🎭 Key Features Added in This Fork
 
 #### **IndexTTS Pro Node** - Multi-Character Voice Synthesis
-- **Multi-Character Support**: Handle up to 5 different characters + narrator with individual voice settings
+- **Multi-Character Support**: Handle up to 4 different characters + narrator with individual voice settings
 - **Advanced Emotion Control**: Three emotion modes for sophisticated expression control
 - **Structured Text Processing**: Parse and process novel-style text with character tags
 - **Automatic Audio Concatenation**: Seamless stitching of multi-character dialogues
@@ -642,6 +642,7 @@ IndexTTS-2模式下支持以下情感：
 ## 许可证
 
 请参考原始IndexTTS项目许可证。
+
 
 
 
